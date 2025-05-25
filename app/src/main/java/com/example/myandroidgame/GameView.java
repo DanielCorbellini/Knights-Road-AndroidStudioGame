@@ -44,7 +44,7 @@ public class GameView extends SurfaceView implements Runnable{
         enemy = new Enemy(getResources(), screenX, screenY);
 
 
-        enemy.setVelocity(-backgroundSpeed, 0);
+        enemy.setVelocity(20, 0);
         // Opcional: faz o personagem se mover junto com o cenário
         // player.setVelocity(-backgroundSpeed, 0); // Metade da velocidade do fundo
 
@@ -88,6 +88,8 @@ public class GameView extends SurfaceView implements Runnable{
             // Desenha personagem por cima
             player.draw(canvas, paint);
 
+            enemy.update();
+            enemy.draw(canvas, paint);
             getHolder().unlockCanvasAndPost(canvas);
         }
     }

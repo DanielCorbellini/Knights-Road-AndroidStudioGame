@@ -28,7 +28,7 @@ public class Player {
     private long lastFrameTime = 0;
 
     // Ajusta o tempo entre cada animação
-    private static final int frameDelay = 100;
+    private static final int frameDelay = 60;
 
     // Quantidade de frames que a sprite tem
     private static final int TOTAL_RUN_FRAMES = 10;

@@ -3,7 +3,9 @@ package com.example.myandroidgame;
 import android.content.res.Resources;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.Canvas;
 import android.graphics.Matrix;
+import android.graphics.Paint;
 
 public class Enemy {
     private Bitmap flySpriteSheet;
@@ -20,15 +22,16 @@ public class Enemy {
     public float velocityX = 2;
     public float velocityY = 0;
     private static final float scale = 2.5f;
+
     public Enemy(Resources resources, int screenX, int screenY) {
         setupFlyFrames(resources);
 
-        // Posicao inicial
-        x = screenX * 0.08f;
-        y = screenY * 0.45f;
+        // Posicao inicial Se aumenta o y ele diminui
+        x = screenX + 10;
+        y = screenY * 0.05f;
     }
 
-    public  void setupFlyFrames(Resources resources) {
+    public void setupFlyFrames(Resources resources) {
         flySpriteSheet = BitmapFactory.decodeResource(resources, R.drawable.enemy1_flight);
 
         width = flySpriteSheet.getWidth() / TOTAL_FLY_FRAMES;
@@ -59,6 +62,10 @@ public class Enemy {
             currentFrame = (currentFrame + 1) % TOTAL_FLY_FRAMES;
             lastFrameTime = currentTime;
         }
+    }
+
+    public void draw(Canvas canvas, Paint paint) {
+        canvas.drawBitmap(flyFrames[currentFrame], x, y, paint);
     }
 
     public void setVelocity(float velocityX, float velocityY) {
