@@ -141,6 +141,11 @@ public class Player {
             lastFrameTime = System.currentTimeMillis();
         }
     }
+
+    public boolean isAttacking() {
+        return this.isAttacking;
+    }
+
     public int getWidth() {
         return width;
     }
