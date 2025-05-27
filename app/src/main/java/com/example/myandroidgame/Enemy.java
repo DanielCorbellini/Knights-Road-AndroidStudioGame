@@ -27,17 +27,19 @@ public class Enemy {
     private static final int TOTAL_DEATH_FRAMES = 4;
     private int deathSprites;
     private int totalFrames;
-
     private boolean isDying = false;
     private boolean isDead = false;
     public float velocityX;
     public float velocityY = 0;
     private static final float scale = 2.5f;
+    private final float gravity = 30f;
+    private float groundY;
 
     public Enemy(Resources resources, int spriteId, int screenX, int screenY) {
         // Posicao inicial Se aumenta o y ele diminui
         x = screenX + 10;
-        y = screenY * 0.30f;
+        groundY = screenY * 0.3f;
+        y = screenY * 0.3f;
 
         if (spriteId == R.drawable.enemy1_flight) {
             y = screenY * 0.05f;
@@ -107,7 +109,14 @@ public class Enemy {
 
         if (isDying) {
             if (currentTime - lastFrameTime > frameDeathDelay) {
-                this.setVelocity(10, 0);
+                velocityX = 10;
+                if (deathSprites == R.drawable.enemy1_death) {
+                    velocityY -= gravity;
+                    if (y >= groundY) {
+                        y = groundY;
+                        velocityY = 0;
+                    }
+                }
                 currentFrame++;
                 lastFrameTime = currentTime;
                 if (currentFrame >= TOTAL_DEATH_FRAMES) {

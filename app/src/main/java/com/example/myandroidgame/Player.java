@@ -9,11 +9,12 @@ import android.graphics.Rect;
 import android.view.MotionEvent;
 
 public class Player {
-
     private Bitmap runSpriteSheet;
     private Bitmap attackSpriteSheet;
+    private Bitmap jumpSpriteSheet;
     private Bitmap[] attackFrames;
     private Bitmap[] runFrames;
+    private Bitmap[] jumpFrames;
 
     // Posicao do personagem
     private float x;
@@ -33,6 +34,7 @@ public class Player {
     // Quantidade de frames que a sprite tem
     private static final int TOTAL_RUN_FRAMES = 10;
     private static final int TOTAL_ATTACK_FRAMES = 4;
+    private static final int TOTAL_JUMP_FRAMES = 2;
 
     // Velocidade do personagem
     public float velocityX = 0;
@@ -43,21 +45,38 @@ public class Player {
 
     // Controla se o player está atacando
     private boolean isAttacking = false;
+    // Controla se o player está pulando
+    private boolean isJumping = false;
+    // Lógica de gravidade
+    private final float gravity = 8f;
+    private final float jumpStrength = -65f;
+    private float groundY;
 
     public Player (Resources resources, int screenX, int screenY) {
         // Carrega a sprite sheet
         setupRunFrames(resources);
         setupAttackFrames(resources);
+        setupJumpFrames(resources);
 
         // Posição inicial do personagem
         x = screenX * 0.02f;
-        y = screenY * 0.45f;
+        groundY = screenY * 0.45f;
+        y = screenY * groundY;
     }
 
     // Controla as animações do personagem
     public void update() {
         x += velocityX;
         y += velocityY;
+        velocityY += gravity;
+
+        if (y >= groundY) {
+            y = groundY;
+            if (velocityY > 0) {
+                isJumping = false;
+                velocityY = 0;
+            }
+        }
 
         long currentTime = System.currentTimeMillis();
         // Atualiza animação
@@ -66,6 +85,11 @@ public class Player {
             if (currentFrame >= TOTAL_ATTACK_FRAMES) {
                 currentFrame = 0;
                 isAttacking = false;
+            }
+        } else if (isJumping) {
+            currentFrame++;
+            if (currentFrame >= TOTAL_JUMP_FRAMES) {
+                currentFrame = 0;
             }
         } else {
             if (currentTime - lastFrameTime > frameDelay) {
@@ -79,6 +103,13 @@ public class Player {
     public void draw(Canvas canvas, Paint paint) {
         if (isAttacking) {
             canvas.drawBitmap(attackFrames[currentFrame], x, y, paint);
+        } else if (isJumping) {
+            // Ajeitar, pois está feio
+            if (velocityY > 0 ) {
+                canvas.drawBitmap(jumpFrames[1], x, y, paint);
+            } else {
+                canvas.drawBitmap(jumpFrames[0], x, y, paint);
+            }
         } else {
             canvas.drawBitmap(runFrames[currentFrame], x, y, paint);
         }
@@ -134,6 +165,19 @@ public class Player {
         }
     }
 
+    private void setupJumpFrames(Resources resources) {
+        jumpSpriteSheet = BitmapFactory.decodeResource(resources, R.drawable._jump_fall_in_between);
+        jumpFrames = new Bitmap[TOTAL_JUMP_FRAMES];
+
+        for (int i = 0; i < TOTAL_JUMP_FRAMES; i++) {
+            Bitmap frame = Bitmap.createBitmap(jumpSpriteSheet, i*width, 0, width, height);
+            int scaleWidth = (int) (width * scale);
+            int scaleHeight = (int) (height * scale);
+
+            jumpFrames[i] = Bitmap.createScaledBitmap(frame, scaleWidth, scaleHeight, false);
+        }
+    }
+
     public void attack() {
         if (!isAttacking) {
             isAttacking = true;
@@ -142,8 +186,21 @@ public class Player {
         }
     }
 
+    public void jump() {
+        if (!isJumping) {
+            isJumping = true;
+            velocityY = jumpStrength;
+            currentFrame = 0;
+            lastFrameTime = System.currentTimeMillis();
+        }
+    }
+
     public boolean isAttacking() {
         return this.isAttacking;
+    }
+
+    public boolean isJumping() {
+        return this.isJumping;
     }
 
     public int getWidth() {

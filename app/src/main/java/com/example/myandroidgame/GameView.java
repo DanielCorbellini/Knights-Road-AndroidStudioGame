@@ -129,7 +129,15 @@ public class GameView extends SurfaceView implements Runnable{
     @Override
     public boolean onTouchEvent(MotionEvent event) {
         if (event.getAction() == MotionEvent.ACTION_DOWN) {
-            player.attack();
+            float touchX = event.getX();
+
+            if (touchX > screenX / 2) {
+                player.attack();
+            }
+
+            if (touchX < screenX / 2) {
+                player.jump();
+            }
         }
         return true;
     }
