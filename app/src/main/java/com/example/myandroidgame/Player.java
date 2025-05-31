@@ -1,11 +1,14 @@
 package com.example.myandroidgame;
 
+import android.content.Context;
 import android.content.res.Resources;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.graphics.Rect;
+import android.media.AudioAttributes;
+import android.media.SoundPool;
 import android.view.MotionEvent;
 
 public class Player {
@@ -29,7 +32,7 @@ public class Player {
     private long lastFrameTime = 0;
 
     // Ajusta o tempo entre cada animação
-    private static final int frameDelay = 60;
+    private static final int frameDelay = 70;
 
     // Quantidade de frames que a sprite tem
     private static final int TOTAL_RUN_FRAMES = 10;
@@ -52,7 +55,19 @@ public class Player {
     private final float jumpStrength = -65f;
     private float groundY;
 
-    public Player (Resources resources, int screenX, int screenY) {
+    // Para captar som dos passos
+    private final SoundPool soundPool;
+    private final int stepSoundId;
+    private final int jumpSoundId;
+    private int attackSoundId;
+
+    private boolean isStepSoundLoaded = false;
+    private boolean isJumpSoundLoaded = false;
+    private boolean isAttackSoundLoaded = false;
+    private boolean hasPlayedJumpSound = false;
+    private boolean hasPlayedAttackSound = false;
+
+    public Player(Resources resources, Context context, int screenX, int screenY) {
         // Carrega a sprite sheet
         setupRunFrames(resources);
         setupAttackFrames(resources);
@@ -62,6 +77,24 @@ public class Player {
         x = screenX * 0.02f;
         groundY = screenY * 0.45f;
         y = screenY * groundY;
+
+        // Audio do personagem
+        soundPool = setupSounds();
+        stepSoundId = soundPool.load(context, R.raw.player_run, 1);
+        jumpSoundId = soundPool.load(context, R.raw.player_jump, 1);
+        attackSoundId = soundPool.load(context, R.raw.player_attack, 1);
+
+        soundPool.setOnLoadCompleteListener((soundPool, sampleId, status) -> {
+            if (status == 0) {
+                if (sampleId == stepSoundId) {
+                    isStepSoundLoaded = true;
+                } else if (sampleId == jumpSoundId) {
+                    isJumpSoundLoaded = true;
+                } else if (sampleId == attackSoundId) {
+                    isAttackSoundLoaded = true;
+                }
+            }
+        });
     }
 
     // Controla as animações do personagem
@@ -80,14 +113,23 @@ public class Player {
 
         long currentTime = System.currentTimeMillis();
         // Atualiza animação
-        if(isAttacking) {
+        if (isAttacking) {
             currentFrame++;
+            if (!hasPlayedAttackSound && isAttackSoundLoaded) {
+                soundPool.play(attackSoundId, 1, 1, 1, 0, 1f);
+                hasPlayedAttackSound = true;
+            }
+
             if (currentFrame >= TOTAL_ATTACK_FRAMES) {
                 currentFrame = 0;
                 isAttacking = false;
             }
         } else if (isJumping) {
             currentFrame++;
+            if (!hasPlayedJumpSound && isJumpSoundLoaded) {
+                soundPool.play(jumpSoundId, 1, 1, 1, 0, 1f);
+                hasPlayedJumpSound = true;
+            }
             if (currentFrame >= TOTAL_JUMP_FRAMES) {
                 currentFrame = 0;
             }
@@ -95,6 +137,9 @@ public class Player {
             if (currentTime - lastFrameTime > frameDelay) {
                 currentFrame = (currentFrame + 1) % TOTAL_RUN_FRAMES;
                 lastFrameTime = currentTime;
+                if (isStepSoundLoaded && (currentFrame == 2 || currentFrame == 7)) {
+                    soundPool.play(stepSoundId, 1, 1, 1, 0, 1f);
+                }
             }
         }
     }
@@ -105,7 +150,7 @@ public class Player {
             canvas.drawBitmap(attackFrames[currentFrame], x, y, paint);
         } else if (isJumping) {
             // Ajeitar, pois está feio
-            if (velocityY > 0 ) {
+            if (velocityY > 0) {
                 canvas.drawBitmap(jumpFrames[1], x, y, paint);
             } else {
                 canvas.drawBitmap(jumpFrames[0], x, y, paint);
@@ -128,7 +173,7 @@ public class Player {
 
     // Para colisões (retorna retângulo do personagem)
     public Rect getBounds() {
-        return new Rect((int)x, (int)y, (int)x + width, (int)y + height);
+        return new Rect((int) x, (int) y, (int) x + width, (int) y + height);
     }
 
     // Carrega as sprites de corrida e ataque
@@ -170,7 +215,7 @@ public class Player {
         jumpFrames = new Bitmap[TOTAL_JUMP_FRAMES];
 
         for (int i = 0; i < TOTAL_JUMP_FRAMES; i++) {
-            Bitmap frame = Bitmap.createBitmap(jumpSpriteSheet, i*width, 0, width, height);
+            Bitmap frame = Bitmap.createBitmap(jumpSpriteSheet, i * width, 0, width, height);
             int scaleWidth = (int) (width * scale);
             int scaleHeight = (int) (height * scale);
 
@@ -178,11 +223,24 @@ public class Player {
         }
     }
 
+    private SoundPool setupSounds() {
+        AudioAttributes audioAttributes = new AudioAttributes.Builder()
+                .setUsage(AudioAttributes.USAGE_GAME)
+                .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                .build();
+
+        return new SoundPool.Builder()
+                .setAudioAttributes(audioAttributes)
+                .setMaxStreams(5)
+                .build();
+    }
+
     public void attack() {
         if (!isAttacking) {
             isAttacking = true;
             currentFrame = 0;
             lastFrameTime = System.currentTimeMillis();
+            hasPlayedAttackSound = false;
         }
     }
 
@@ -192,6 +250,7 @@ public class Player {
             velocityY = jumpStrength;
             currentFrame = 0;
             lastFrameTime = System.currentTimeMillis();
+            hasPlayedJumpSound = false;
         }
     }
 
