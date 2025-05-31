@@ -18,7 +18,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:textSize="48sp"
-        android:text="Vambora"
+        android:text="Knight's road"
         android:textColor="#FFFFFF"
         android:layout_above="@id/play"
         android:layout_centerHorizontal="true"/>
@@ -26,14 +26,9 @@
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Jogar"
+        android:text="Play"
         android:textSize="64sp"
         android:layout_centerInParent="true"
-        android:textColor="#000000"
+        android:textColor="#FFFFFF"
         android:id="@+id/play"/>
-
-
-
-
-
 </RelativeLayout>

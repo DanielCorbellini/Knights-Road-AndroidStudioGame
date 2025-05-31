@@ -55,18 +55,19 @@ public class Player {
     private final float jumpStrength = -65f;
     private float groundY;
 
-    // Para captar som dos passos
+    // Variáveis que controlam o som
     private final SoundPool soundPool;
     private final int stepSoundId;
     private final int jumpSoundId;
     private int attackSoundId;
-
     private boolean isStepSoundLoaded = false;
     private boolean isJumpSoundLoaded = false;
     private boolean isAttackSoundLoaded = false;
     private boolean hasPlayedJumpSound = false;
     private boolean hasPlayedAttackSound = false;
-
+    private long lastStepSoundTime = 0;
+    private static final long STEP_SOUND_COOLDOWN_MS = 120;
+    private float soundValue = 0.2f;
     public Player(Resources resources, Context context, int screenX, int screenY) {
         // Carrega a sprite sheet
         setupRunFrames(resources);
@@ -115,21 +116,12 @@ public class Player {
         // Atualiza animação
         if (isAttacking) {
             currentFrame++;
-            if (!hasPlayedAttackSound && isAttackSoundLoaded) {
-                soundPool.play(attackSoundId, 1, 1, 1, 0, 1f);
-                hasPlayedAttackSound = true;
-            }
-
             if (currentFrame >= TOTAL_ATTACK_FRAMES) {
                 currentFrame = 0;
                 isAttacking = false;
             }
         } else if (isJumping) {
             currentFrame++;
-            if (!hasPlayedJumpSound && isJumpSoundLoaded) {
-                soundPool.play(jumpSoundId, 1, 1, 1, 0, 1f);
-                hasPlayedJumpSound = true;
-            }
             if (currentFrame >= TOTAL_JUMP_FRAMES) {
                 currentFrame = 0;
             }
@@ -138,7 +130,7 @@ public class Player {
                 currentFrame = (currentFrame + 1) % TOTAL_RUN_FRAMES;
                 lastFrameTime = currentTime;
                 if (isStepSoundLoaded && (currentFrame == 2 || currentFrame == 7)) {
-                    soundPool.play(stepSoundId, 1, 1, 1, 0, 1f);
+                    soundPool.play(stepSoundId, soundValue, soundValue, 1, 0, 1f);
                 }
             }
         }
@@ -240,7 +232,9 @@ public class Player {
             isAttacking = true;
             currentFrame = 0;
             lastFrameTime = System.currentTimeMillis();
-            hasPlayedAttackSound = false;
+            if (isAttackSoundLoaded) {
+                soundPool.play(attackSoundId, soundValue, soundValue, 1, 0, 1f);
+            }
         }
     }
 
@@ -250,7 +244,9 @@ public class Player {
             velocityY = jumpStrength;
             currentFrame = 0;
             lastFrameTime = System.currentTimeMillis();
-            hasPlayedJumpSound = false;
+            if (isJumpSoundLoaded) {
+                soundPool.play(jumpSoundId, soundValue, soundValue, 1, 0, 1f);
+            }
         }
     }
 

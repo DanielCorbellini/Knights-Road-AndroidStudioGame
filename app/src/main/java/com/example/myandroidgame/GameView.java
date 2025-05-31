@@ -23,8 +23,6 @@ public class GameView extends SurfaceView implements Runnable{
 
     private int screenX;
     private int screenY;
-    private float screenRatioX;
-    private float screenRatioY;
     private Paint paint;
 
     // Variáveis para spawnar inimigos de maneira aleatória
@@ -39,9 +37,6 @@ public class GameView extends SurfaceView implements Runnable{
 
         this.screenX = screenX;
         this.screenY = screenY;
-
-        screenRatioX = screenX / 1920f;
-        screenRatioY = screenY / 1080f;
 
         backgroundSpeed = 10;
 
@@ -131,10 +126,12 @@ public class GameView extends SurfaceView implements Runnable{
         if (event.getAction() == MotionEvent.ACTION_DOWN) {
             float touchX = event.getX();
 
+            // Clique metade direita da tela
             if (touchX > screenX / 2) {
                 player.attack();
             }
 
+            // Clique na metade esquerda da tela
             if (touchX < screenX / 2) {
                 player.jump();
             }
