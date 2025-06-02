@@ -13,14 +13,11 @@ import java.util.List;
 import java.util.Random;
 
 public class GameView extends SurfaceView implements Runnable{
-
     private Thread thread;
     private boolean isPlaying;
     private Background background1;
     private Background background2;
     private Player player;
-    private Enemy enemy;
-
     private int screenX;
     private int screenY;
     private Paint paint;
@@ -29,8 +26,9 @@ public class GameView extends SurfaceView implements Runnable{
     private List<Enemy> enemies = new ArrayList<>();
     private long lastSpawnTime = 0;
     private Random random = new Random();
-
     float backgroundSpeed;
+
+    // Acelerômetro
 
     public GameView(Context context, int screenX, int screenY) {
         super(context);
@@ -59,7 +57,7 @@ public class GameView extends SurfaceView implements Runnable{
         }
     }
 
-    // lógica do jogo (movimento, colisão, spawn, vida, etc.)
+    // lógica do jogo (movimento, colisão, spawn, etc.)
     private void update() {
         long currentTime = System.currentTimeMillis();
         // Atualiza backgrounds
@@ -74,8 +72,10 @@ public class GameView extends SurfaceView implements Runnable{
             background2.x = background1.x + screenX;
         }
 
-        // Atualiza personagem
-        player.update();
+        // Atualiza personagem caso não esteja morto
+        if(!player.isDead()) {
+            player.update();
+        }
 
         // Spawn de inimigos
         if (currentTime - lastSpawnTime > getRandomSpawnDelay()) {
@@ -98,6 +98,17 @@ public class GameView extends SurfaceView implements Runnable{
             // Colisão com ataque do player
             if (player.isAttacking() && Rect.intersects(player.getBounds(), enemy.getBounds())) {
                 enemy.die();
+            }
+
+            if (!enemy.isAttacking() && Rect.intersects(enemy.getBounds(), player.getBounds())
+                    && !player.isDead()) {
+                enemy.attack();
+            }
+
+            // Morte do player
+            if(enemy.isDidAttackHit() && !player.isDead() && !player.isDying()) {
+                backgroundSpeed = 0;
+                player.die();
             }
         }
     }
@@ -127,12 +138,12 @@ public class GameView extends SurfaceView implements Runnable{
             float touchX = event.getX();
 
             // Clique metade direita da tela
-            if (touchX > screenX / 2) {
+            if (touchX > screenX / 2 && !player.isDead()) {
                 player.attack();
             }
 
             // Clique na metade esquerda da tela
-            if (touchX < screenX / 2) {
+            if (touchX < screenX / 2 && !player.isDead()) {
                 player.jump();
             }
         }
@@ -150,7 +161,7 @@ public class GameView extends SurfaceView implements Runnable{
         // Escolhe um sprite aleatório
         int spriteId = sprites[random.nextInt(sprites.length)];
 
-        Enemy enemy = new Enemy(getResources(), spriteId, screenX, screenY);
+        Enemy enemy = new Enemy(getResources(), getContext(), spriteId, screenX, screenY);
         enemies.add(enemy);
     }
 
@@ -181,4 +192,11 @@ public class GameView extends SurfaceView implements Runnable{
             throw new RuntimeException(e);
         }
     }
+
+    public void jumpPlayer() {
+        if (player != null && !player.isDead()) {
+            player.jump();
+        }
+    }
+
 }

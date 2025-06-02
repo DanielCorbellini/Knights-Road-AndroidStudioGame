@@ -12,13 +12,10 @@ import android.media.SoundPool;
 import android.view.MotionEvent;
 
 public class Player {
-    private Bitmap runSpriteSheet;
-    private Bitmap attackSpriteSheet;
-    private Bitmap jumpSpriteSheet;
     private Bitmap[] attackFrames;
     private Bitmap[] runFrames;
     private Bitmap[] jumpFrames;
-
+    private Bitmap [] deathFrames;
     // Posicao do personagem
     private float x;
     private float y;
@@ -38,6 +35,7 @@ public class Player {
     private static final int TOTAL_RUN_FRAMES = 10;
     private static final int TOTAL_ATTACK_FRAMES = 4;
     private static final int TOTAL_JUMP_FRAMES = 2;
+    private static final int TOTAL_DEATH_FRAMES = 10;
 
     // Velocidade do personagem
     public float velocityX = 0;
@@ -63,16 +61,12 @@ public class Player {
     private boolean isStepSoundLoaded = false;
     private boolean isJumpSoundLoaded = false;
     private boolean isAttackSoundLoaded = false;
-    private boolean hasPlayedJumpSound = false;
-    private boolean hasPlayedAttackSound = false;
-    private long lastStepSoundTime = 0;
-    private static final long STEP_SOUND_COOLDOWN_MS = 120;
     private float soundValue = 0.2f;
+    private boolean isDying = false;
+    private boolean isDead = false;
     public Player(Resources resources, Context context, int screenX, int screenY) {
         // Carrega a sprite sheet
-        setupRunFrames(resources);
-        setupAttackFrames(resources);
-        setupJumpFrames(resources);
+        setupAnimations(resources);
 
         // Posição inicial do personagem
         x = screenX * 0.02f;
@@ -120,12 +114,28 @@ public class Player {
                 currentFrame = 0;
                 isAttacking = false;
             }
-        } else if (isJumping) {
+            return;
+        }
+
+        if (isJumping) {
             currentFrame++;
             if (currentFrame >= TOTAL_JUMP_FRAMES) {
                 currentFrame = 0;
             }
-        } else {
+            return;
+        }
+
+        if (isDying) {
+            currentFrame++;
+            if(currentFrame >= TOTAL_DEATH_FRAMES) {
+                currentFrame = 0;
+                isDead = true;
+                isDying = false;
+            }
+            return;
+        }
+
+        if (!isDead) {
             if (currentTime - lastFrameTime > frameDelay) {
                 currentFrame = (currentFrame + 1) % TOTAL_RUN_FRAMES;
                 lastFrameTime = currentTime;
@@ -140,27 +150,29 @@ public class Player {
     public void draw(Canvas canvas, Paint paint) {
         if (isAttacking) {
             canvas.drawBitmap(attackFrames[currentFrame], x, y, paint);
-        } else if (isJumping) {
-            // Ajeitar, pois está feio
+            return;
+        }
+
+        if (isJumping) {
             if (velocityY > 0) {
                 canvas.drawBitmap(jumpFrames[1], x, y, paint);
             } else {
                 canvas.drawBitmap(jumpFrames[0], x, y, paint);
             }
-        } else {
-            canvas.drawBitmap(runFrames[currentFrame], x, y, paint);
+            return;
         }
-    }
 
-    // Métodos úteis para controle
-    public void setPosition(float x, float y) {
-        this.x = x;
-        this.y = y;
-    }
+        if (isDying) {
+            canvas.drawBitmap(deathFrames[currentFrame], x, y, paint);
+            return;
+        }
 
-    public void setVelocity(float velocityX, float velocityY) {
-        this.velocityX = velocityX;
-        this.velocityY = velocityY;
+        if (isDead) {
+            canvas.drawBitmap(deathFrames[deathFrames.length -1], x, y, paint);
+            return;
+        }
+
+        canvas.drawBitmap(runFrames[currentFrame], x, y, paint);
     }
 
     // Para colisões (retorna retângulo do personagem)
@@ -168,51 +180,32 @@ public class Player {
         return new Rect((int) x, (int) y, (int) x + width, (int) y + height);
     }
 
-    // Carrega as sprites de corrida e ataque
-    public void setupRunFrames(Resources resources) {
-        runSpriteSheet = BitmapFactory.decodeResource(resources, R.drawable._run);
+    // Carrega as sprites das animações
+    private Bitmap[] setupFrames(Resources resources, int totalFrames, int id) {
+       Bitmap spritesheet = BitmapFactory.decodeResource(resources, id);
 
-        width = runSpriteSheet.getWidth() / TOTAL_RUN_FRAMES;
-        height = runSpriteSheet.getHeight();
+        width = spritesheet.getWidth() / totalFrames;
+        height = spritesheet.getHeight();
 
         // Corta cada frame da sprite sheet
-        runFrames = new Bitmap[TOTAL_RUN_FRAMES];
-        for (int i = 0; i < TOTAL_RUN_FRAMES; i++) {
+        Bitmap[] frames = new Bitmap[totalFrames];
+        for (int i = 0; i < totalFrames; i++) {
             // Corta cada frame da sprite sheet original
-            Bitmap frame = Bitmap.createBitmap(runSpriteSheet, i * width, 0, width, height);
+            Bitmap frame = Bitmap.createBitmap(spritesheet, i * width, 0, width, height);
 
             // Redimensiona o frame se necessário
             int scaleWidth = (int) (width * scale);
             int scaleHeight = (int) (height * scale);
-            runFrames[i] = Bitmap.createScaledBitmap(frame, scaleWidth, scaleHeight, false);
+            frames[i] = Bitmap.createScaledBitmap(frame, scaleWidth, scaleHeight, false);
         }
+        return frames;
     }
 
-    public void setupAttackFrames(Resources resources) {
-        attackSpriteSheet = BitmapFactory.decodeResource(resources, R.drawable._attack);
-
-        attackFrames = new Bitmap[TOTAL_ATTACK_FRAMES];
-        for (int i = 0; i < TOTAL_ATTACK_FRAMES; i++) {
-            Bitmap frame = Bitmap.createBitmap(attackSpriteSheet, i * width, 0, width, height);
-
-            int scaleWidth = (int) (width * scale);
-            int scaleHeight = (int) (height * scale);
-
-            attackFrames[i] = Bitmap.createScaledBitmap(frame, scaleWidth, scaleHeight, false);
-        }
-    }
-
-    private void setupJumpFrames(Resources resources) {
-        jumpSpriteSheet = BitmapFactory.decodeResource(resources, R.drawable._jump_fall_in_between);
-        jumpFrames = new Bitmap[TOTAL_JUMP_FRAMES];
-
-        for (int i = 0; i < TOTAL_JUMP_FRAMES; i++) {
-            Bitmap frame = Bitmap.createBitmap(jumpSpriteSheet, i * width, 0, width, height);
-            int scaleWidth = (int) (width * scale);
-            int scaleHeight = (int) (height * scale);
-
-            jumpFrames[i] = Bitmap.createScaledBitmap(frame, scaleWidth, scaleHeight, false);
-        }
+    private void setupAnimations(Resources resources) {
+        runFrames = setupFrames(resources, TOTAL_RUN_FRAMES, R.drawable._run);
+        attackFrames = setupFrames(resources, TOTAL_ATTACK_FRAMES, R.drawable._attack);
+        jumpFrames = setupFrames(resources, TOTAL_JUMP_FRAMES, R.drawable._jump_fall_in_between);
+        deathFrames = setupFrames(resources, TOTAL_DEATH_FRAMES, R.drawable._death);
     }
 
     private SoundPool setupSounds() {
@@ -250,19 +243,23 @@ public class Player {
         }
     }
 
+    public void die() {
+        if (!isDying) {
+            isDying = true;
+            currentFrame = 0;
+            lastFrameTime = System.currentTimeMillis();
+        }
+    }
+
+    public boolean isDead() {
+        return isDead;
+    }
+
     public boolean isAttacking() {
         return this.isAttacking;
     }
 
-    public boolean isJumping() {
-        return this.isJumping;
-    }
-
-    public int getWidth() {
-        return width;
-    }
-
-    public int getHeight() {
-        return height;
+    public boolean isDying() {
+        return isDying;
     }
 }
